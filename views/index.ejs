@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles.css">
+    <title>Azure Open AI App</title>
+</head>
+<body>
+    <h1>Welcome to Azure OpenAI Weather App</h1>
+    <h2>Want to know what the weather's like?</h2>
+    <div class="container-1">
+        <% if (!locals.prompt) { %>
+            <% console.log('No prompt given yet') %>
+        <% } else { %>
+            <div id="responseBlock">
+                <p id="response"><%= response %></p>
+            </div>
+        <% } %>
+        <form action="/chat" method="post">
+            <input type="text" name="prompt" id="prompt" placeholder="How may I help you today?" value="<%= locals.prompt || '' %>">
+    
+            <input type="submit" id="promptButton" value="➡️">
+    
+        </form>
+    </div>
+</body>
+</html>
