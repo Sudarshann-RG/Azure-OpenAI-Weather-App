@@ -1,13 +1,18 @@
 import bodyParser from 'body-parser';
-// import { config } from 'dotenv';
+import { config } from 'dotenv';
 import express from 'express';
 import { AzureOpenAI } from 'openai';
-// config();
+import axios from 'axios';
+import { marked } from 'marked';
+config();
 
 const azureOpenAIKey = process.env.AZURE_OPENAI_KEY;
 const azureOpenAIEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
 const azureOpenAIDeployment = process.env.AZURE_OPENAI_DEPLOYMENT;
 const azureOpenAIVersion = process.env.AZURE_OPENAI_VERSION;
+
+const bingKey = process.env.BING_SEARCH_KEY;
+const bingEndpoint = process.env.BING_SEARCH_ENDPOINT;
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -26,8 +31,47 @@ if (!azureOpenAIKey || !azureOpenAIEndpoint || !azureOpenAIDeployment || !azureO
     );
 }
 
-function getWeather(location){
-    return `It's 80 degrees F and slightly cloudy in ${location}.`;
+async function getWeather(location){
+  const query = `What is the weather like in ${location}`;
+  const url = `${bingEndpoint}/v7.0/search?q=${encodeURIComponent(query)}`;
+  try
+  {
+    const response = await axios.get(url, {
+      headers: {
+        'Ocp-Apim-Subscription-Key': bingKey
+      }
+    });
+    
+    const webPages = response.data.webPages?.value;
+    if(webPages && webPages.length > 0)
+    {
+      return webPages[0].snippet;
+    }
+    else
+    {
+      return `Couldn't find weather information for ${location}.`;
+    }
+  }
+  catch(error)
+  {
+    console.error('Error occurred while calling Bing Search API:', error.response?.data || error.message || error);
+    return `Failed to get weather for ${location}.`;
+    // if(!bingKey)
+    // {
+    //   console.error('Bing Search Resource Key is empty.');
+    //   return `Failed to get weather for ${location}.`;
+    // }
+    // if(!bingEndpoint)
+    // {
+    //   console.error('Bing Search Resource Endpoint is empty.');
+    //   return `Failed to get weather for ${location}.`;
+    // }
+    // else
+    // {
+    //   console.error('The error exists but it does not pertain to Bing Search Resource Key or Endpoint.');
+    //   return `Failed to get weather for ${location}.`;
+    // }
+  }
 }
 
 async function main(prompt) {
@@ -96,7 +140,7 @@ async function main(prompt) {
         for (const tool of runResponse.required_action.submit_tool_outputs.tool_calls) {
           if (tool.function.name === "getWeather") {
             const location = JSON.parse(tool.function.arguments).location;
-            const weather = getWeather(location);
+            const weather = await getWeather(location);
     
             toolOutputs.push({
               tool_call_id: tool.id,
@@ -139,9 +183,10 @@ app.post('/chat', async(req, res) => {
     console.log("Prompt: ", req.body.prompt);
     var prompt = req.body.prompt;
     var answer = await main(prompt);
+    var htmlResponse = marked.parse(answer[0]);
     res.render('index.ejs', {
         prompt: prompt,
-        response: answer[0]
+        response: htmlResponse
     });
 });
 

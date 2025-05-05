@@ -14,7 +14,7 @@
             <% console.log('No prompt given yet') %>
         <% } else { %>
             <div id="responseBlock">
-                <p id="response"><%= response %></p>
+                <p id="response"><%- response %></p>
             </div>
         <% } %>
         <form action="/chat" method="post">
